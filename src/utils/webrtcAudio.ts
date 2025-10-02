@@ -76,9 +76,39 @@ export async function createRealtimeSession(
 
   const dc = pc.createDataChannel('oai-events');
   
+  let sessionCreated = false;
+  
   dc.addEventListener('message', (e) => {
     try {
       const eventData = JSON.parse(e.data);
+      
+      // Send session.update with instructions after receiving session.created
+      if (eventData.type === 'session.created' && !sessionCreated) {
+        sessionCreated = true;
+        console.log('Session created, sending configuration update...');
+        
+        const sessionUpdate = {
+          type: 'session.update',
+          session: {
+            instructions: instructions,
+            voice: voice,
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 1000
+            },
+            temperature: 0.8,
+            max_response_output_tokens: 'inf'
+          }
+        };
+        
+        dc.send(JSON.stringify(sessionUpdate));
+        console.log('Session updated with voice:', voice, 'and instructions:', instructions);
+      }
+      
       onMessage(eventData);
     } catch (err) {
       console.error('Error parsing event data:', err);
@@ -100,7 +130,7 @@ export async function createRealtimeSession(
   };
 
   const resp = await fetch(
-    `https://api.openai.com/v1/realtime?model=${model}&voice=${voice}&instructions=${encodeURIComponent(instructions)}`,
+    `https://api.openai.com/v1/realtime?model=${model}`,
     opts
   );
 
