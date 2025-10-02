@@ -170,9 +170,6 @@ export default function Index() {
               <AudioIndicator isActive={isAudioActive} />
             </div>
             <div className="text-right">
-              <h1 className="text-3xl md:text-4xl font-light mb-1">
-                Transform Product Development with
-              </h1>
               <h2 className="text-4xl md:text-6xl font-bold">
                 <span className="text-primary">EPAM AI/Run™</span>.ClarityRTC
               </h2>
