@@ -31,18 +31,23 @@ export interface UsageEvent {
   [key: string]: any;
 }
 
-const AUDIO_INPUT_COST = 0.00004;
-const AUDIO_OUTPUT_COST = 0.00008;
-const CACHED_AUDIO_COST = 0.0000025;
-const TEXT_INPUT_COST = 0.0000025;
-const TEXT_OUTPUT_COST = 0.00001;
+export interface PricingConfig {
+  audioInputCost: number;
+  audioOutputCost: number;
+  cachedAudioCost: number;
+  textInputCost: number;
+  textOutputCost: number;
+}
 
-export function calculateCosts(stats: Omit<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'>): Pick<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'> {
-  const audioInputCost = stats.audioInputTokens * AUDIO_INPUT_COST;
-  const cachedInputCost = stats.cachedInputTokens * CACHED_AUDIO_COST;
-  const textInputCost = stats.textInputTokens * TEXT_INPUT_COST;
-  const audioOutputCost = stats.audioOutputTokens * AUDIO_OUTPUT_COST;
-  const textOutputCost = stats.textOutputTokens * TEXT_OUTPUT_COST;
+export function calculateCosts(
+  stats: Omit<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'>,
+  pricing: PricingConfig
+): Pick<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'> {
+  const audioInputCost = stats.audioInputTokens * pricing.audioInputCost;
+  const cachedInputCost = stats.cachedInputTokens * pricing.cachedAudioCost;
+  const textInputCost = stats.textInputTokens * pricing.textInputCost;
+  const audioOutputCost = stats.audioOutputTokens * pricing.audioOutputCost;
+  const textOutputCost = stats.textOutputTokens * pricing.textOutputCost;
 
   const inputCost = audioInputCost + cachedInputCost + textInputCost;
   const outputCost = audioOutputCost + textOutputCost;
@@ -55,6 +60,7 @@ export async function createRealtimeSession(
   inStream: MediaStream,
   token: string,
   voice: string,
+  model: string,
   onMessage: (data: any) => void
 ): Promise<RTCPeerConnection> {
   const pc = new RTCPeerConnection();
@@ -91,7 +97,6 @@ export async function createRealtimeSession(
     headers,
   };
 
-  const model = 'gpt-4o-realtime-preview-2024-12-17';
   const resp = await fetch(
     `https://api.openai.com/v1/realtime?model=${model}&voice=${voice}`,
     opts

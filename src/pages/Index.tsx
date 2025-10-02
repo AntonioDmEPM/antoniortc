@@ -3,7 +3,8 @@ import VoiceControls from '@/components/VoiceControls';
 import StatsDisplay from '@/components/StatsDisplay';
 import EventLog from '@/components/EventLog';
 import AudioIndicator from '@/components/AudioIndicator';
-import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent } from '@/utils/webrtcAudio';
+import PricingSettings from '@/components/PricingSettings';
+import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
 interface EventEntry {
@@ -35,6 +36,13 @@ export default function Index() {
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [audioVisualizer, setAudioVisualizer] = useState<AudioVisualizer | null>(null);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
+    audioInputCost: 0.00004,
+    audioOutputCost: 0.00008,
+    cachedAudioCost: 0.0000025,
+    textInputCost: 0.0000025,
+    textOutputCost: 0.00001,
+  });
 
   const addEvent = (data: any) => {
     const entry: EventEntry = {
@@ -61,7 +69,7 @@ export default function Index() {
         textOutputTokens: outputDetails.text_tokens,
       };
 
-      const costs = calculateCosts(newStats);
+      const costs = calculateCosts(newStats, pricingConfig);
       const fullStats = { ...newStats, ...costs };
 
       setCurrentStats(fullStats);
@@ -78,7 +86,7 @@ export default function Index() {
     }
   };
 
-  const startSession = async (token: string, voice: string) => {
+  const startSession = async (token: string, voice: string, model: string) => {
     try {
       setStatusType('connecting');
       setStatusMessage('Requesting microphone access...');
@@ -96,7 +104,7 @@ export default function Index() {
 
       setStatusMessage('Establishing connection...');
 
-      const pc = await createRealtimeSession(stream, token, voice, handleMessage);
+      const pc = await createRealtimeSession(stream, token, voice, model, handleMessage);
       setPeerConnection(pc);
 
       setIsConnected(true);
@@ -173,6 +181,8 @@ export default function Index() {
             statusMessage={statusMessage}
             statusType={statusType}
           />
+
+          <PricingSettings onPricingChange={setPricingConfig} />
 
           <div className="grid lg:grid-cols-1 gap-6">
             <StatsDisplay title="Most Recent Interaction" stats={currentStats} />
