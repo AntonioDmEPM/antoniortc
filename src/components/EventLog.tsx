@@ -21,7 +21,7 @@ export default function EventLog({ events }: EventLogProps) {
     : events.filter(e => e.data.type === 'response.done' || e.data.type === 'error');
 
   return (
-    <Card className="p-6 shadow-card">
+    <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Session Events</h2>
         <div className="flex items-center space-x-2">

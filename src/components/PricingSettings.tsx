@@ -14,24 +14,46 @@ export interface PricingConfig {
   textOutputCost: number;
 }
 
-const DEFAULT_PRICING: PricingConfig = {
-  audioInputCost: 0.00004,
-  audioOutputCost: 0.00008,
-  cachedAudioCost: 0.0000025,
-  textInputCost: 0.0000025,
-  textOutputCost: 0.00001,
+export const MODEL_PRICING = {
+  "gpt-4o-realtime-preview-2024-12-17": {
+    audioInputCost: 0.00004,
+    audioOutputCost: 0.00008,
+    cachedAudioCost: 0.0000025,
+    textInputCost: 0.000005,
+    textOutputCost: 0.00002,
+  },
+  "gpt-4o-mini-realtime-preview-2024-12-17": {
+    audioInputCost: 0.00001,
+    audioOutputCost: 0.00002,
+    cachedAudioCost: 0.0000003,
+    textInputCost: 0.0000006,
+    textOutputCost: 0.0000024,
+  },
+  "gpt-realtime": {
+    audioInputCost: 0.000032,
+    audioOutputCost: 0.000064,
+    cachedAudioCost: 0.0000004,
+    textInputCost: 0.000004,
+    textOutputCost: 0.000016,
+  },
 };
 
 interface PricingSettingsProps {
   onPricingChange: (pricing: PricingConfig) => void;
+  selectedModel: string;
 }
 
-export default function PricingSettings({ onPricingChange }: PricingSettingsProps) {
+export default function PricingSettings({ onPricingChange, selectedModel }: PricingSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
+  const [pricing, setPricing] = useState<PricingConfig>(
+    MODEL_PRICING[selectedModel as keyof typeof MODEL_PRICING] || MODEL_PRICING["gpt-4o-realtime-preview-2024-12-17"]
+  );
 
   useEffect(() => {
-    const saved = localStorage.getItem('pricing_config');
+    const modelKey = selectedModel as keyof typeof MODEL_PRICING;
+    const defaultPricing = MODEL_PRICING[modelKey] || MODEL_PRICING["gpt-4o-realtime-preview-2024-12-17"];
+    
+    const saved = localStorage.getItem(`pricing_config_${selectedModel}`);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -39,11 +61,14 @@ export default function PricingSettings({ onPricingChange }: PricingSettingsProp
         onPricingChange(parsed);
       } catch (e) {
         console.error('Failed to parse saved pricing:', e);
+        setPricing(defaultPricing);
+        onPricingChange(defaultPricing);
       }
     } else {
-      onPricingChange(DEFAULT_PRICING);
+      setPricing(defaultPricing);
+      onPricingChange(defaultPricing);
     }
-  }, []);
+  }, [selectedModel]);
 
   const handleChange = (field: keyof PricingConfig, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -52,22 +77,24 @@ export default function PricingSettings({ onPricingChange }: PricingSettingsProp
   };
 
   const handleSave = () => {
-    localStorage.setItem('pricing_config', JSON.stringify(pricing));
+    localStorage.setItem(`pricing_config_${selectedModel}`, JSON.stringify(pricing));
     onPricingChange(pricing);
   };
 
   const handleReset = () => {
-    setPricing(DEFAULT_PRICING);
-    localStorage.removeItem('pricing_config');
-    onPricingChange(DEFAULT_PRICING);
+    const modelKey = selectedModel as keyof typeof MODEL_PRICING;
+    const defaultPricing = MODEL_PRICING[modelKey] || MODEL_PRICING["gpt-4o-realtime-preview-2024-12-17"];
+    setPricing(defaultPricing);
+    localStorage.removeItem(`pricing_config_${selectedModel}`);
+    onPricingChange(defaultPricing);
   };
 
   return (
-    <Card className="p-6 shadow-card">
+    <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger className="flex items-center justify-between w-full">
           <h2 className="text-xl font-semibold">Pricing Configuration</h2>
-          <ChevronDown className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`transition-transform text-primary ${isOpen ? 'rotate-180' : ''}`} />
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -123,9 +150,12 @@ export default function PricingSettings({ onPricingChange }: PricingSettingsProp
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleSave}>Save Pricing</Button>
-            <Button onClick={handleReset} variant="outline">Reset to Defaults</Button>
+            <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">Save Pricing</Button>
+            <Button onClick={handleReset} variant="outline" className="border-primary/30 hover:bg-primary/10">Reset to Defaults</Button>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Model: <span className="text-primary font-mono">{selectedModel}</span>
+          </p>
         </CollapsibleContent>
       </Collapsible>
     </Card>

@@ -8,7 +8,7 @@ interface StatsDisplayProps {
 
 export default function StatsDisplay({ title, stats }: StatsDisplayProps) {
   return (
-    <Card className="p-6 shadow-card">
+    <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <h2 className="text-xl font-semibold mb-6 pb-3 border-b">{title}</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-3 p-4 bg-secondary rounded-lg">

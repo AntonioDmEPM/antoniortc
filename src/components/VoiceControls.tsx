@@ -11,12 +11,14 @@ interface VoiceControlsProps {
   isConnected: boolean;
   statusMessage: string;
   statusType: 'idle' | 'success' | 'error' | 'connecting';
+  onModelChange?: (model: string) => void;
 }
 
-interface RealtimeModel {
-  id: string;
-  name: string;
-}
+const REALTIME_MODELS = [
+  { id: 'gpt-4o-realtime-preview-2024-12-17', name: 'GPT-4o Realtime (2024-12-17)' },
+  { id: 'gpt-4o-mini-realtime-preview-2024-12-17', name: 'GPT-4o Mini Realtime (2024-12-17)' },
+  { id: 'gpt-realtime', name: 'GPT Realtime' },
+];
 
 const VOICES = [
   { value: 'ash', label: 'Ash' },
@@ -32,54 +34,34 @@ export default function VoiceControls({
   isConnected,
   statusMessage,
   statusType,
+  onModelChange,
 }: VoiceControlsProps) {
   const [token, setToken] = useState('');
   const [voice, setVoice] = useState('ash');
   const [model, setModel] = useState('gpt-4o-realtime-preview-2024-12-17');
-  const [models, setModels] = useState<RealtimeModel[]>([]);
-  const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('openai_api_key');
     if (savedToken) {
       setToken(savedToken);
-      fetchModels(savedToken);
+    }
+    
+    const savedModel = localStorage.getItem('selected_model');
+    if (savedModel && REALTIME_MODELS.find(m => m.id === savedModel)) {
+      setModel(savedModel);
+      onModelChange?.(savedModel);
     }
   }, []);
 
-  const fetchModels = async (apiToken: string) => {
-    setLoadingModels(true);
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const realtimeModels = data.data
-          .filter((m: any) => m.id.includes('realtime'))
-          .map((m: any) => ({ id: m.id, name: m.id }));
-        setModels(realtimeModels);
-        
-        if (realtimeModels.length > 0 && !model) {
-          setModel(realtimeModels[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
-    } finally {
-      setLoadingModels(false);
-    }
+  const handleModelChange = (newModel: string) => {
+    setModel(newModel);
+    localStorage.setItem('selected_model', newModel);
+    onModelChange?.(newModel);
   };
 
   const handleStart = () => {
     if (!token) return;
     localStorage.setItem('openai_api_key', token);
-    if (models.length === 0) {
-      fetchModels(token);
-    }
     onStart(token, voice, model);
   };
 
@@ -97,7 +79,7 @@ export default function VoiceControls({
   };
 
   return (
-    <Card className="p-6 shadow-card">
+    <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="token">OpenAI API Token</Label>
@@ -108,27 +90,22 @@ export default function VoiceControls({
             onChange={(e) => setToken(e.target.value)}
             disabled={isConnected}
             placeholder="sk-..."
+            className="bg-background/50"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="model">Model</Label>
-          <Select value={model} onValueChange={setModel} disabled={isConnected || loadingModels}>
-            <SelectTrigger id="model">
-              <SelectValue placeholder={loadingModels ? "Loading models..." : "Select model"} />
+          <Select value={model} onValueChange={handleModelChange} disabled={isConnected}>
+            <SelectTrigger id="model" className="bg-background/50">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {models.length > 0 ? (
-                models.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem value="gpt-4o-realtime-preview-2024-12-17">
-                  gpt-4o-realtime-preview-2024-12-17
+              {REALTIME_MODELS.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name}
                 </SelectItem>
-              )}
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -136,7 +113,7 @@ export default function VoiceControls({
         <div className="space-y-2">
           <Label htmlFor="voice">Voice</Label>
           <Select value={voice} onValueChange={setVoice} disabled={isConnected}>
-            <SelectTrigger id="voice">
+            <SelectTrigger id="voice" className="bg-background/50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -152,7 +129,7 @@ export default function VoiceControls({
         <Button
           onClick={isConnected ? onStop : handleStart}
           disabled={!isConnected && !token}
-          className="w-full"
+          className="w-full bg-primary hover:bg-primary/90"
           variant={isConnected ? 'destructive' : 'default'}
         >
           {isConnected ? 'Stop Session' : 'Start Session'}

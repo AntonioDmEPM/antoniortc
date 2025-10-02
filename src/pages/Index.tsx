@@ -4,6 +4,7 @@ import StatsDisplay from '@/components/StatsDisplay';
 import EventLog from '@/components/EventLog';
 import AudioIndicator from '@/components/AudioIndicator';
 import PricingSettings from '@/components/PricingSettings';
+import PromptSettings from '@/components/PromptSettings';
 import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,6 +37,8 @@ export default function Index() {
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [audioVisualizer, setAudioVisualizer] = useState<AudioVisualizer | null>(null);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-realtime-preview-2024-12-17');
+  const [botPrompt, setBotPrompt] = useState('You are a helpful AI assistant. Be concise and friendly in your responses.');
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
     audioInputCost: 0.00004,
     audioOutputCost: 0.00008,
@@ -159,18 +162,22 @@ export default function Index() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen dark">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <header className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
-            <AudioIndicator isActive={isAudioActive} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <AudioIndicator isActive={isAudioActive} />
+            </div>
+            <div className="text-right">
+              <h1 className="text-3xl md:text-4xl font-light mb-1">
+                Transform Product Development with
+              </h1>
+              <h2 className="text-4xl md:text-6xl font-bold">
+                <span className="text-primary">EPAM AI/Run™</span>.ClarityRTC
+              </h2>
+            </div>
           </div>
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent gradient-primary">
-            OpenAI WebRTC Audio Session
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Real-time voice AI powered by OpenAI's Realtime API
-          </p>
         </header>
 
         <div className="space-y-6">
@@ -180,9 +187,15 @@ export default function Index() {
             isConnected={isConnected}
             statusMessage={statusMessage}
             statusType={statusType}
+            onModelChange={setSelectedModel}
           />
 
-          <PricingSettings onPricingChange={setPricingConfig} />
+          <PromptSettings onPromptChange={setBotPrompt} />
+
+          <PricingSettings 
+            onPricingChange={setPricingConfig}
+            selectedModel={selectedModel}
+          />
 
           <div className="grid lg:grid-cols-1 gap-6">
             <StatsDisplay title="Most Recent Interaction" stats={currentStats} />
