@@ -62,12 +62,12 @@ export default function Index() {
       const usage = eventData.response.usage;
       const inputDetails = usage.input_token_details;
       const outputDetails = usage.output_token_details;
-      const cachedDetails = inputDetails.cached_tokens_details;
+      const cachedDetails = inputDetails.cached_tokens_details || { audio_tokens: 0, text_tokens: 0 };
 
       const newStats = {
         audioInputTokens: inputDetails.audio_tokens - cachedDetails.audio_tokens,
         textInputTokens: inputDetails.text_tokens - cachedDetails.text_tokens,
-        cachedInputTokens: inputDetails.cached_tokens,
+        cachedInputTokens: inputDetails.cached_tokens || 0,
         audioOutputTokens: outputDetails.audio_tokens,
         textOutputTokens: outputDetails.text_tokens,
       };
