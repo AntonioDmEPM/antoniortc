@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,14 @@ interface PromptSettingsProps {
 export default function PromptSettings({ onPromptChange }: PromptSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState<string>(DEFAULT_PROMPT);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('bot_prompt');
@@ -25,6 +33,10 @@ export default function PromptSettings({ onPromptChange }: PromptSettingsProps) 
       onPromptChange(DEFAULT_PROMPT);
     }
   }, []);
+
+  useEffect(() => {
+    autoResize();
+  }, [prompt, isOpen]);
 
   const handleSave = () => {
     localStorage.setItem('bot_prompt', prompt);
@@ -48,11 +60,11 @@ export default function PromptSettings({ onPromptChange }: PromptSettingsProps) 
           <div className="space-y-2">
             <Label htmlFor="botPrompt">Bot Instructions</Label>
             <Textarea
+              ref={textareaRef}
               id="botPrompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              rows={6}
-              className="font-mono text-sm bg-background/50"
+              className="font-mono text-sm bg-background/50 resize-none overflow-hidden min-h-[150px]"
               placeholder="Enter the bot's system prompt..."
             />
           </div>
