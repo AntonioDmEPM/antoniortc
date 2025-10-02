@@ -5,6 +5,8 @@ import EventLog from '@/components/EventLog';
 import AudioIndicator from '@/components/AudioIndicator';
 import PricingSettings from '@/components/PricingSettings';
 import PromptSettings from '@/components/PromptSettings';
+import ConversationTimer from '@/components/ConversationTimer';
+import ConversationTimeline, { TimelineSegment } from '@/components/ConversationTimeline';
 import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,6 +48,10 @@ export default function Index() {
     textInputCost: 0.0000025,
     textOutputCost: 0.00001,
   });
+  
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [timelineSegments, setTimelineSegments] = useState<TimelineSegment[]>([]);
+  const [currentSegment, setCurrentSegment] = useState<Partial<TimelineSegment> | null>(null);
 
   const addEvent = (data: any) => {
     const entry: EventEntry = {
@@ -57,6 +63,43 @@ export default function Index() {
 
   const handleMessage = (eventData: UsageEvent) => {
     addEvent(eventData);
+
+    // Track timeline segments
+    if (eventData.type === 'input_audio_buffer.speech_started') {
+      setCurrentSegment({
+        start: Date.now(),
+        speaker: 'user',
+      });
+    } else if (eventData.type === 'input_audio_buffer.speech_stopped') {
+      if (currentSegment?.start && currentSegment.speaker === 'user') {
+        const end = Date.now();
+        setTimelineSegments(prev => [...prev, {
+          start: currentSegment.start,
+          end,
+          duration: end - currentSegment.start,
+          speaker: 'user',
+        }]);
+        setCurrentSegment(null);
+      }
+    } else if (eventData.type === 'response.audio.delta') {
+      if (!currentSegment || currentSegment.speaker !== 'assistant') {
+        setCurrentSegment({
+          start: Date.now(),
+          speaker: 'assistant',
+        });
+      }
+    } else if (eventData.type === 'response.audio.done') {
+      if (currentSegment?.start && currentSegment.speaker === 'assistant') {
+        const end = Date.now();
+        setTimelineSegments(prev => [...prev, {
+          start: currentSegment.start,
+          end,
+          duration: end - currentSegment.start,
+          speaker: 'assistant',
+        }]);
+        setCurrentSegment(null);
+      }
+    }
 
     if (eventData.type === 'response.done' && eventData.response?.usage) {
       const usage = eventData.response.usage;
@@ -111,6 +154,7 @@ export default function Index() {
       setPeerConnection(pc);
 
       setIsConnected(true);
+      setSessionStartTime(Date.now());
       setStatusType('success');
       setStatusMessage('Session established successfully!');
 
@@ -153,6 +197,8 @@ export default function Index() {
     setStatusType('idle');
     setStatusMessage('');
     setCurrentStats(initialStats);
+    setSessionStartTime(null);
+    setCurrentSegment(null);
   };
 
   const clearEvents = () => {
@@ -161,6 +207,7 @@ export default function Index() {
 
   const resetSessionTotals = () => {
     setSessionStats(initialStats);
+    setTimelineSegments([]);
     toast({
       title: 'Session Totals Reset',
       description: 'All session statistics have been cleared',
@@ -180,6 +227,7 @@ export default function Index() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <AudioIndicator isActive={isAudioActive} />
+              <ConversationTimer isActive={isConnected} startTime={sessionStartTime} />
             </div>
             <div className="text-right">
               <h2 className="text-4xl md:text-6xl font-bold">
@@ -219,6 +267,8 @@ export default function Index() {
           <div className="text-sm text-muted-foreground italic">
             Note: Cost calculations are estimates based on published rates and may not be 100% accurate.
           </div>
+
+          <ConversationTimeline segments={timelineSegments} sessionStartTime={sessionStartTime} />
 
           <EventLog events={events} onClearEvents={clearEvents} />
         </div>
