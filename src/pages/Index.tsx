@@ -107,7 +107,7 @@ export default function Index() {
 
       setStatusMessage('Establishing connection...');
 
-      const pc = await createRealtimeSession(stream, token, voice, model, handleMessage);
+      const pc = await createRealtimeSession(stream, token, voice, model, botPrompt, handleMessage);
       setPeerConnection(pc);
 
       setIsConnected(true);
