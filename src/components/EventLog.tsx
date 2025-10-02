@@ -3,6 +3,8 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 interface EventEntry {
   timestamp: string;
@@ -11,9 +13,10 @@ interface EventEntry {
 
 interface EventLogProps {
   events: EventEntry[];
+  onClearEvents: () => void;
 }
 
-export default function EventLog({ events }: EventLogProps) {
+export default function EventLog({ events, onClearEvents }: EventLogProps) {
   const [showRawEvents, setShowRawEvents] = useState(true);
 
   const filteredEvents = showRawEvents 
@@ -24,13 +27,24 @@ export default function EventLog({ events }: EventLogProps) {
     <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Session Events</h2>
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="show-raw"
-            checked={showRawEvents}
-            onCheckedChange={setShowRawEvents}
-          />
-          <Label htmlFor="show-raw">Show all events</Label>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-raw"
+              checked={showRawEvents}
+              onCheckedChange={setShowRawEvents}
+            />
+            <Label htmlFor="show-raw">Show all events</Label>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearEvents}
+            disabled={events.length === 0}
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear
+          </Button>
         </div>
       </div>
       <ScrollArea className="h-[400px] w-full rounded-lg border">

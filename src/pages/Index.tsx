@@ -155,6 +155,10 @@ export default function Index() {
     setCurrentStats(initialStats);
   };
 
+  const clearEvents = () => {
+    setEvents([]);
+  };
+
   useEffect(() => {
     return () => {
       stopSession();
@@ -203,7 +207,7 @@ export default function Index() {
             Note: Cost calculations are estimates based on published rates and may not be 100% accurate.
           </div>
 
-          <EventLog events={events} />
+          <EventLog events={events} onClearEvents={clearEvents} />
         </div>
       </div>
     </div>
