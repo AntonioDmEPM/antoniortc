@@ -159,6 +159,14 @@ export default function Index() {
     setEvents([]);
   };
 
+  const resetSessionTotals = () => {
+    setSessionStats(initialStats);
+    toast({
+      title: 'Session Totals Reset',
+      description: 'All session statistics have been cleared',
+    });
+  };
+
   useEffect(() => {
     return () => {
       stopSession();
@@ -200,7 +208,12 @@ export default function Index() {
 
           <div className="grid lg:grid-cols-1 gap-6">
             <StatsDisplay title="Most Recent Interaction" stats={currentStats} />
-            <StatsDisplay title="Session Total" stats={sessionStats} />
+            <StatsDisplay 
+              title="Session Total" 
+              stats={sessionStats}
+              onReset={resetSessionTotals}
+              resetDisabled={isConnected}
+            />
           </div>
 
           <div className="text-sm text-muted-foreground italic">
