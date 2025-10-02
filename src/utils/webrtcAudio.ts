@@ -1,0 +1,163 @@
+export interface SessionStats {
+  audioInputTokens: number;
+  textInputTokens: number;
+  cachedInputTokens: number;
+  audioOutputTokens: number;
+  textOutputTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+}
+
+export interface UsageEvent {
+  type: string;
+  response?: {
+    usage?: {
+      input_token_details: {
+        audio_tokens: number;
+        text_tokens: number;
+        cached_tokens: number;
+        cached_tokens_details: {
+          audio_tokens: number;
+          text_tokens: number;
+        };
+      };
+      output_token_details: {
+        audio_tokens: number;
+        text_tokens: number;
+      };
+    };
+  };
+  [key: string]: any;
+}
+
+const AUDIO_INPUT_COST = 0.00004;
+const AUDIO_OUTPUT_COST = 0.00008;
+const CACHED_AUDIO_COST = 0.0000025;
+const TEXT_INPUT_COST = 0.0000025;
+const TEXT_OUTPUT_COST = 0.00001;
+
+export function calculateCosts(stats: Omit<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'>): Pick<SessionStats, 'inputCost' | 'outputCost' | 'totalCost'> {
+  const audioInputCost = stats.audioInputTokens * AUDIO_INPUT_COST;
+  const cachedInputCost = stats.cachedInputTokens * CACHED_AUDIO_COST;
+  const textInputCost = stats.textInputTokens * TEXT_INPUT_COST;
+  const audioOutputCost = stats.audioOutputTokens * AUDIO_OUTPUT_COST;
+  const textOutputCost = stats.textOutputTokens * TEXT_OUTPUT_COST;
+
+  const inputCost = audioInputCost + cachedInputCost + textInputCost;
+  const outputCost = audioOutputCost + textOutputCost;
+  const totalCost = inputCost + outputCost;
+
+  return { inputCost, outputCost, totalCost };
+}
+
+export async function createRealtimeSession(
+  inStream: MediaStream,
+  token: string,
+  voice: string,
+  onMessage: (data: any) => void
+): Promise<RTCPeerConnection> {
+  const pc = new RTCPeerConnection();
+
+  pc.ontrack = (e) => {
+    const audio = new Audio();
+    audio.srcObject = e.streams[0];
+    audio.play();
+  };
+
+  pc.addTrack(inStream.getTracks()[0]);
+
+  const dc = pc.createDataChannel('oai-events');
+  dc.addEventListener('message', (e) => {
+    try {
+      const eventData = JSON.parse(e.data);
+      onMessage(eventData);
+    } catch (err) {
+      console.error('Error parsing event data:', err);
+    }
+  });
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/sdp',
+  };
+
+  const opts = {
+    method: 'POST',
+    body: offer.sdp,
+    headers,
+  };
+
+  const model = 'gpt-4o-realtime-preview-2024-12-17';
+  const resp = await fetch(
+    `https://api.openai.com/v1/realtime?model=${model}&voice=${voice}`,
+    opts
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Failed to establish session: ${resp.statusText}`);
+  }
+
+  await pc.setRemoteDescription({
+    type: 'answer',
+    sdp: await resp.text(),
+  });
+
+  return pc;
+}
+
+export class AudioVisualizer {
+  private audioContext: AudioContext | null = null;
+  private analyzer: AnalyserNode | null = null;
+  private animationFrame: number | null = null;
+  private onActivity: (active: boolean) => void;
+
+  constructor(onActivity: (active: boolean) => void) {
+    this.onActivity = onActivity;
+  }
+
+  setup(stream: MediaStream) {
+    this.audioContext = new AudioContext();
+    const source = this.audioContext.createMediaStreamSource(stream);
+    this.analyzer = this.audioContext.createAnalyser();
+    this.analyzer.fftSize = 256;
+
+    source.connect(this.analyzer);
+
+    this.startVisualization();
+  }
+
+  private startVisualization() {
+    if (!this.analyzer) return;
+
+    const bufferLength = this.analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const update = () => {
+      if (!this.analyzer) return;
+
+      this.analyzer.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+
+      this.onActivity(average > 30);
+      this.animationFrame = requestAnimationFrame(update);
+    };
+
+    update();
+  }
+
+  cleanup() {
+    if (this.animationFrame !== null) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    this.analyzer = null;
+  }
+}

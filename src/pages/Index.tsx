@@ -1,14 +1,191 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from 'react';
+import VoiceControls from '@/components/VoiceControls';
+import StatsDisplay from '@/components/StatsDisplay';
+import EventLog from '@/components/EventLog';
+import AudioIndicator from '@/components/AudioIndicator';
+import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent } from '@/utils/webrtcAudio';
+import { useToast } from '@/hooks/use-toast';
 
-const Index = () => {
+interface EventEntry {
+  timestamp: string;
+  data: any;
+}
+
+const initialStats: SessionStats = {
+  audioInputTokens: 0,
+  textInputTokens: 0,
+  cachedInputTokens: 0,
+  audioOutputTokens: 0,
+  textOutputTokens: 0,
+  inputCost: 0,
+  outputCost: 0,
+  totalCost: 0,
+};
+
+export default function Index() {
+  const { toast } = useToast();
+  const [isConnected, setIsConnected] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState<'idle' | 'success' | 'error' | 'connecting'>('idle');
+  const [isAudioActive, setIsAudioActive] = useState(false);
+  const [currentStats, setCurrentStats] = useState<SessionStats>(initialStats);
+  const [sessionStats, setSessionStats] = useState<SessionStats>(initialStats);
+  const [events, setEvents] = useState<EventEntry[]>([]);
+
+  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [audioVisualizer, setAudioVisualizer] = useState<AudioVisualizer | null>(null);
+
+  const addEvent = (data: any) => {
+    const entry: EventEntry = {
+      timestamp: new Date().toISOString(),
+      data,
+    };
+    setEvents((prev) => [entry, ...prev.slice(0, 49)]);
+  };
+
+  const handleMessage = (eventData: UsageEvent) => {
+    addEvent(eventData);
+
+    if (eventData.type === 'response.done' && eventData.response?.usage) {
+      const usage = eventData.response.usage;
+      const inputDetails = usage.input_token_details;
+      const outputDetails = usage.output_token_details;
+      const cachedDetails = inputDetails.cached_tokens_details;
+
+      const newStats = {
+        audioInputTokens: inputDetails.audio_tokens - cachedDetails.audio_tokens,
+        textInputTokens: inputDetails.text_tokens - cachedDetails.text_tokens,
+        cachedInputTokens: inputDetails.cached_tokens,
+        audioOutputTokens: outputDetails.audio_tokens,
+        textOutputTokens: outputDetails.text_tokens,
+      };
+
+      const costs = calculateCosts(newStats);
+      const fullStats = { ...newStats, ...costs };
+
+      setCurrentStats(fullStats);
+      setSessionStats((prev) => ({
+        audioInputTokens: prev.audioInputTokens + newStats.audioInputTokens,
+        textInputTokens: prev.textInputTokens + newStats.textInputTokens,
+        cachedInputTokens: prev.cachedInputTokens + newStats.cachedInputTokens,
+        audioOutputTokens: prev.audioOutputTokens + newStats.audioOutputTokens,
+        textOutputTokens: prev.textOutputTokens + newStats.textOutputTokens,
+        inputCost: prev.inputCost + costs.inputCost,
+        outputCost: prev.outputCost + costs.outputCost,
+        totalCost: prev.totalCost + costs.totalCost,
+      }));
+    }
+  };
+
+  const startSession = async (token: string, voice: string) => {
+    try {
+      setStatusType('connecting');
+      setStatusMessage('Requesting microphone access...');
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false,
+      });
+
+      setAudioStream(stream);
+
+      const visualizer = new AudioVisualizer(setIsAudioActive);
+      visualizer.setup(stream);
+      setAudioVisualizer(visualizer);
+
+      setStatusMessage('Establishing connection...');
+
+      const pc = await createRealtimeSession(stream, token, voice, handleMessage);
+      setPeerConnection(pc);
+
+      setIsConnected(true);
+      setStatusType('success');
+      setStatusMessage('Session established successfully!');
+
+      toast({
+        title: 'Connected',
+        description: 'Voice session is active',
+      });
+    } catch (err: any) {
+      setStatusType('error');
+      setStatusMessage(`Error: ${err.message}`);
+      console.error('Session error:', err);
+      stopSession();
+
+      toast({
+        title: 'Connection Failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopSession = () => {
+    if (peerConnection) {
+      peerConnection.close();
+      setPeerConnection(null);
+    }
+
+    if (audioVisualizer) {
+      audioVisualizer.cleanup();
+      setAudioVisualizer(null);
+    }
+
+    if (audioStream) {
+      audioStream.getTracks().forEach((track) => track.stop());
+      setAudioStream(null);
+    }
+
+    setIsConnected(false);
+    setIsAudioActive(false);
+    setStatusType('idle');
+    setStatusMessage('');
+    setCurrentStats(initialStats);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopSession();
+    };
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <header className="mb-8">
+          <div className="flex items-center gap-4 mb-2">
+            <AudioIndicator isActive={isAudioActive} />
+          </div>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent gradient-primary">
+            OpenAI WebRTC Audio Session
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Real-time voice AI powered by OpenAI's Realtime API
+          </p>
+        </header>
+
+        <div className="space-y-6">
+          <VoiceControls
+            onStart={startSession}
+            onStop={stopSession}
+            isConnected={isConnected}
+            statusMessage={statusMessage}
+            statusType={statusType}
+          />
+
+          <div className="grid lg:grid-cols-1 gap-6">
+            <StatsDisplay title="Most Recent Interaction" stats={currentStats} />
+            <StatsDisplay title="Session Total" stats={sessionStats} />
+          </div>
+
+          <div className="text-sm text-muted-foreground italic">
+            Note: Cost calculations are estimates based on published rates and may not be 100% accurate.
+          </div>
+
+          <EventLog events={events} />
+        </div>
       </div>
     </div>
   );
-};
-
-export default Index;
+}
