@@ -7,6 +7,7 @@ import PricingSettings from '@/components/PricingSettings';
 import PromptSettings from '@/components/PromptSettings';
 import ConversationTimer from '@/components/ConversationTimer';
 import ConversationTimeline, { TimelineSegment } from '@/components/ConversationTimeline';
+import TokenDashboard, { TokenDataPoint } from '@/components/TokenDashboard';
 import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,6 +53,8 @@ export default function Index() {
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [timelineSegments, setTimelineSegments] = useState<TimelineSegment[]>([]);
   const [currentSegment, setCurrentSegment] = useState<Partial<TimelineSegment> | null>(null);
+  const [tokenDataPoints, setTokenDataPoints] = useState<TokenDataPoint[]>([]);
+  const [cumulativeTokens, setCumulativeTokens] = useState({ input: 0, output: 0 });
 
   const addEvent = (data: any) => {
     const entry: EventEntry = {
@@ -129,6 +132,28 @@ export default function Index() {
         outputCost: prev.outputCost + costs.outputCost,
         totalCost: prev.totalCost + costs.totalCost,
       }));
+
+      // Track token data points for dashboard
+      if (sessionStartTime) {
+        const totalInput = newStats.audioInputTokens + newStats.textInputTokens;
+        const totalOutput = newStats.audioOutputTokens + newStats.textOutputTokens;
+        
+        setCumulativeTokens(prev => ({
+          input: prev.input + totalInput,
+          output: prev.output + totalOutput,
+        }));
+
+        const dataPoint: TokenDataPoint = {
+          timestamp: Date.now(),
+          elapsedSeconds: (Date.now() - sessionStartTime) / 1000,
+          inputTokens: totalInput,
+          outputTokens: totalOutput,
+          cumulativeInput: cumulativeTokens.input + totalInput,
+          cumulativeOutput: cumulativeTokens.output + totalOutput,
+        };
+
+        setTokenDataPoints(prev => [...prev, dataPoint]);
+      }
     }
   };
 
@@ -155,6 +180,8 @@ export default function Index() {
 
       setIsConnected(true);
       setSessionStartTime(Date.now());
+      setTokenDataPoints([]);
+      setCumulativeTokens({ input: 0, output: 0 });
       setStatusType('success');
       setStatusMessage('Session established successfully!');
 
@@ -208,6 +235,8 @@ export default function Index() {
   const resetSessionTotals = () => {
     setSessionStats(initialStats);
     setTimelineSegments([]);
+    setTokenDataPoints([]);
+    setCumulativeTokens({ input: 0, output: 0 });
     toast({
       title: 'Session Totals Reset',
       description: 'All session statistics have been cleared',
@@ -267,6 +296,14 @@ export default function Index() {
           <div className="text-sm text-muted-foreground italic">
             Note: Cost calculations are estimates based on published rates and may not be 100% accurate.
           </div>
+
+          <TokenDashboard 
+            dataPoints={tokenDataPoints}
+            sessionStartTime={sessionStartTime}
+            isActive={isConnected}
+            totalInputTokens={sessionStats.audioInputTokens + sessionStats.textInputTokens}
+            totalOutputTokens={sessionStats.audioOutputTokens + sessionStats.textOutputTokens}
+          />
 
           <ConversationTimeline segments={timelineSegments} sessionStartTime={sessionStartTime} />
 
