@@ -130,7 +130,7 @@ export async function createRealtimeSession(
   };
 
   const resp = await fetch(
-    `https://api.openai.com/v1/realtime?model=${model}&voice=${voice}`,
+    `https://api.openai.com/v1/realtime?model=${model}&voice=${voice}&instructions=${encodeURIComponent(instructions)}`,
     opts
   );
 
