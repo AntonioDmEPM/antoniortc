@@ -162,7 +162,7 @@ export default function Index() {
   }, []);
 
   return (
-    <div className="min-h-screen dark">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
