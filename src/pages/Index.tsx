@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import VoiceControls from '@/components/VoiceControls';
 import StatsDisplay from '@/components/StatsDisplay';
 import EventLog from '@/components/EventLog';
@@ -51,6 +51,7 @@ export default function Index() {
   });
   
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(null);
   const [timelineSegments, setTimelineSegments] = useState<TimelineSegment[]>([]);
   const [currentSegment, setCurrentSegment] = useState<Partial<TimelineSegment> | null>(null);
   const [tokenDataPoints, setTokenDataPoints] = useState<TokenDataPoint[]>([]);
@@ -94,12 +95,15 @@ export default function Index() {
     } else if (eventData.type === 'response.audio.done') {
       if (currentSegment?.start && currentSegment.speaker === 'assistant') {
         const end = Date.now();
-        setTimelineSegments(prev => [...prev, {
+        const segment: TimelineSegment = {
           start: currentSegment.start,
           end,
           duration: end - currentSegment.start,
           speaker: 'assistant',
-        }]);
+          inputTokens: currentSegment.inputTokens,
+          outputTokens: currentSegment.outputTokens,
+        };
+        setTimelineSegments(prev => [...prev, segment]);
         setCurrentSegment(null);
       }
     }
@@ -133,6 +137,22 @@ export default function Index() {
       const fullStats = { ...newStats, ...costs };
 
       setCurrentStats(fullStats);
+      
+      // Store token data in current segment for timeline
+      const totalInput = newStats.audioInputTokens + newStats.textInputTokens;
+      const totalOutput = newStats.audioOutputTokens + newStats.textOutputTokens;
+      
+      setCurrentSegment(prev => {
+        if (prev && prev.speaker === 'assistant') {
+          return {
+            ...prev,
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+          };
+        }
+        return prev;
+      });
+
       setSessionStats((prev) => {
         const updated = {
           audioInputTokens: prev.audioInputTokens + newStats.audioInputTokens,
@@ -150,38 +170,40 @@ export default function Index() {
       });
 
       // Track token data points for dashboard
-      console.log('Checking if should add data point. sessionStartTime:', sessionStartTime);
-      if (sessionStartTime) {
+      console.log('Checking if should add data point. sessionStartTimeRef:', sessionStartTimeRef.current);
+      if (sessionStartTimeRef.current) {
         const totalInput = newStats.audioInputTokens + newStats.textInputTokens;
         const totalOutput = newStats.audioOutputTokens + newStats.textOutputTokens;
         
         console.log('Adding data point - totalInput:', totalInput, 'totalOutput:', totalOutput);
         
-        const newCumulativeInput = cumulativeTokens.input + totalInput;
-        const newCumulativeOutput = cumulativeTokens.output + totalOutput;
-        
-        setCumulativeTokens({
-          input: newCumulativeInput,
-          output: newCumulativeOutput,
-        });
+        setCumulativeTokens(prev => {
+          const newCumulativeInput = prev.input + totalInput;
+          const newCumulativeOutput = prev.output + totalOutput;
+          
+          const dataPoint: TokenDataPoint = {
+            timestamp: Date.now(),
+            elapsedSeconds: (Date.now() - sessionStartTimeRef.current!) / 1000,
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+            cumulativeInput: newCumulativeInput,
+            cumulativeOutput: newCumulativeOutput,
+          };
 
-        const dataPoint: TokenDataPoint = {
-          timestamp: Date.now(),
-          elapsedSeconds: (Date.now() - sessionStartTime) / 1000,
-          inputTokens: totalInput,
-          outputTokens: totalOutput,
-          cumulativeInput: newCumulativeInput,
-          cumulativeOutput: newCumulativeOutput,
-        };
-
-        console.log('Created data point:', dataPoint);
-        setTokenDataPoints(prev => {
-          const updated = [...prev, dataPoint];
-          console.log('Updated tokenDataPoints array length:', updated.length);
-          return updated;
+          console.log('Created data point:', dataPoint);
+          setTokenDataPoints(prevPoints => {
+            const updated = [...prevPoints, dataPoint];
+            console.log('Updated tokenDataPoints array length:', updated.length);
+            return updated;
+          });
+          
+          return {
+            input: newCumulativeInput,
+            output: newCumulativeOutput,
+          };
         });
       } else {
-        console.log('NOT adding data point - sessionStartTime is null');
+        console.log('NOT adding data point - sessionStartTimeRef is null');
       }
     }
   };
@@ -207,8 +229,10 @@ export default function Index() {
       const pc = await createRealtimeSession(stream, token, voice, model, botPrompt, handleMessage);
       setPeerConnection(pc);
 
+      const startTime = Date.now();
+      sessionStartTimeRef.current = startTime;
       setIsConnected(true);
-      setSessionStartTime(Date.now());
+      setSessionStartTime(startTime);
       setTokenDataPoints([]);
       setCumulativeTokens({ input: 0, output: 0 });
       setStatusType('success');
@@ -253,6 +277,7 @@ export default function Index() {
     setStatusType('idle');
     setStatusMessage('');
     setCurrentStats(initialStats);
+    sessionStartTimeRef.current = null;
     setSessionStartTime(null);
     setCurrentSegment(null);
   };
