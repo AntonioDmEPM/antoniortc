@@ -138,18 +138,21 @@ export default function Index() {
         const totalInput = newStats.audioInputTokens + newStats.textInputTokens;
         const totalOutput = newStats.audioOutputTokens + newStats.textOutputTokens;
         
-        setCumulativeTokens(prev => ({
-          input: prev.input + totalInput,
-          output: prev.output + totalOutput,
-        }));
+        const newCumulativeInput = cumulativeTokens.input + totalInput;
+        const newCumulativeOutput = cumulativeTokens.output + totalOutput;
+        
+        setCumulativeTokens({
+          input: newCumulativeInput,
+          output: newCumulativeOutput,
+        });
 
         const dataPoint: TokenDataPoint = {
           timestamp: Date.now(),
           elapsedSeconds: (Date.now() - sessionStartTime) / 1000,
           inputTokens: totalInput,
           outputTokens: totalOutput,
-          cumulativeInput: cumulativeTokens.input + totalInput,
-          cumulativeOutput: cumulativeTokens.output + totalOutput,
+          cumulativeInput: newCumulativeInput,
+          cumulativeOutput: newCumulativeOutput,
         };
 
         setTokenDataPoints(prev => [...prev, dataPoint]);
