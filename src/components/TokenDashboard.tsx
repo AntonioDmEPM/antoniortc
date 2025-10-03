@@ -104,54 +104,114 @@ export default function TokenDashboard({
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Charts */}
       {dataPoints.length > 0 ? (
-        <div className="mt-4">
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart 
-              data={dataPoints} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
-              <XAxis 
-                dataKey="elapsedSeconds" 
-                label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
-                className="text-xs"
-                tickFormatter={(value) => value.toFixed(0)}
-              />
-              <YAxis 
-                label={{ value: 'Tokens', angle: -90, position: 'insideLeft' }}
-                className="text-xs"
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="line"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="cumulativeInput" 
-                stroke="hsl(var(--chart-1))" 
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-                name="Input Tokens"
-                animationDuration={300}
-                isAnimationActive={isActive}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="cumulativeOutput" 
-                stroke="hsl(var(--chart-2))" 
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-                name="Output Tokens"
-                animationDuration={300}
-                isAnimationActive={isActive}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="space-y-8 mt-4">
+          {/* Cumulative Chart */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Cumulative Token Usage
+            </h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart 
+                data={dataPoints} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
+                <XAxis 
+                  dataKey="elapsedSeconds" 
+                  label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
+                  className="text-xs"
+                  tickFormatter={(value) => value.toFixed(0)}
+                />
+                <YAxis 
+                  label={{ value: 'Cumulative Tokens', angle: -90, position: 'insideLeft' }}
+                  className="text-xs"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="line"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="cumulativeInput" 
+                  stroke="hsl(var(--chart-1))" 
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                  name="Cumulative Input"
+                  animationDuration={300}
+                  isAnimationActive={isActive}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="cumulativeOutput" 
+                  stroke="hsl(var(--chart-2))" 
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                  name="Cumulative Output"
+                  animationDuration={300}
+                  isAnimationActive={isActive}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Per-Interaction Chart */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Per-Interaction Token Usage
+            </h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart 
+                data={dataPoints} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" opacity={0.3} />
+                <XAxis 
+                  dataKey="elapsedSeconds" 
+                  label={{ value: 'Time (seconds)', position: 'insideBottom', offset: -10 }}
+                  className="text-xs"
+                  tickFormatter={(value) => value.toFixed(0)}
+                />
+                <YAxis 
+                  label={{ value: 'Tokens per Interaction', angle: -90, position: 'insideLeft' }}
+                  className="text-xs"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="line"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="inputTokens" 
+                  stroke="hsl(var(--chart-3))" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Input Tokens"
+                  animationDuration={300}
+                  isAnimationActive={isActive}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="outputTokens" 
+                  stroke="hsl(var(--chart-4))" 
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Output Tokens"
+                  animationDuration={300}
+                  isAnimationActive={isActive}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       ) : (
         <div className="py-12 text-center text-muted-foreground">

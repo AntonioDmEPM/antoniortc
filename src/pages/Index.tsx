@@ -320,7 +320,7 @@ export default function Index() {
             dataPoints={tokenDataPoints}
             sessionStartTime={sessionStartTime}
             isActive={isConnected}
-            totalInputTokens={sessionStats.audioInputTokens + sessionStats.textInputTokens}
+            totalInputTokens={sessionStats.audioInputTokens + sessionStats.textInputTokens + sessionStats.cachedInputTokens}
             totalOutputTokens={sessionStats.audioOutputTokens + sessionStats.textOutputTokens}
           />
 
