@@ -105,10 +105,19 @@ export default function Index() {
     }
 
     if (eventData.type === 'response.done' && eventData.response?.usage) {
+      console.log('=== RESPONSE.DONE EVENT ===');
+      console.log('Full event:', JSON.stringify(eventData, null, 2));
+      
       const usage = eventData.response.usage;
+      console.log('Usage object:', usage);
+      
       const inputDetails = usage.input_token_details;
       const outputDetails = usage.output_token_details;
       const cachedDetails = inputDetails.cached_tokens_details || { audio_tokens: 0, text_tokens: 0 };
+
+      console.log('Input details:', inputDetails);
+      console.log('Output details:', outputDetails);
+      console.log('Cached details:', cachedDetails);
 
       const newStats = {
         audioInputTokens: inputDetails.audio_tokens - cachedDetails.audio_tokens,
@@ -118,20 +127,27 @@ export default function Index() {
         textOutputTokens: outputDetails.text_tokens,
       };
 
+      console.log('Calculated newStats:', newStats);
+
       const costs = calculateCosts(newStats, pricingConfig);
       const fullStats = { ...newStats, ...costs };
 
       setCurrentStats(fullStats);
-      setSessionStats((prev) => ({
-        audioInputTokens: prev.audioInputTokens + newStats.audioInputTokens,
-        textInputTokens: prev.textInputTokens + newStats.textInputTokens,
-        cachedInputTokens: prev.cachedInputTokens + newStats.cachedInputTokens,
-        audioOutputTokens: prev.audioOutputTokens + newStats.audioOutputTokens,
-        textOutputTokens: prev.textOutputTokens + newStats.textOutputTokens,
-        inputCost: prev.inputCost + costs.inputCost,
-        outputCost: prev.outputCost + costs.outputCost,
-        totalCost: prev.totalCost + costs.totalCost,
-      }));
+      setSessionStats((prev) => {
+        const updated = {
+          audioInputTokens: prev.audioInputTokens + newStats.audioInputTokens,
+          textInputTokens: prev.textInputTokens + newStats.textInputTokens,
+          cachedInputTokens: prev.cachedInputTokens + newStats.cachedInputTokens,
+          audioOutputTokens: prev.audioOutputTokens + newStats.audioOutputTokens,
+          textOutputTokens: prev.textOutputTokens + newStats.textOutputTokens,
+          inputCost: prev.inputCost + costs.inputCost,
+          outputCost: prev.outputCost + costs.outputCost,
+          totalCost: prev.totalCost + costs.totalCost,
+        };
+        console.log('Previous session stats:', prev);
+        console.log('Updated session stats:', updated);
+        return updated;
+      });
 
       // Track token data points for dashboard
       if (sessionStartTime) {
