@@ -150,9 +150,12 @@ export default function Index() {
       });
 
       // Track token data points for dashboard
+      console.log('Checking if should add data point. sessionStartTime:', sessionStartTime);
       if (sessionStartTime) {
         const totalInput = newStats.audioInputTokens + newStats.textInputTokens;
         const totalOutput = newStats.audioOutputTokens + newStats.textOutputTokens;
+        
+        console.log('Adding data point - totalInput:', totalInput, 'totalOutput:', totalOutput);
         
         const newCumulativeInput = cumulativeTokens.input + totalInput;
         const newCumulativeOutput = cumulativeTokens.output + totalOutput;
@@ -171,7 +174,14 @@ export default function Index() {
           cumulativeOutput: newCumulativeOutput,
         };
 
-        setTokenDataPoints(prev => [...prev, dataPoint]);
+        console.log('Created data point:', dataPoint);
+        setTokenDataPoints(prev => {
+          const updated = [...prev, dataPoint];
+          console.log('Updated tokenDataPoints array length:', updated.length);
+          return updated;
+        });
+      } else {
+        console.log('NOT adding data point - sessionStartTime is null');
       }
     }
   };
