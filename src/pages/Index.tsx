@@ -274,7 +274,39 @@ export default function Index() {
     }
   };
 
-  const stopSession = () => {
+  const stopSession = async () => {
+    // Auto-save session before stopping
+    if (sessionStartTime) {
+      const sessionName = `Session ${new Date().toLocaleString()}`;
+      const sessionData = {
+        name: sessionName,
+        model: selectedModel,
+        voice: selectedVoice,
+        bot_prompt: botPrompt,
+        pricing_config: pricingConfig as any,
+        session_stats: sessionStats as any,
+        timeline_segments: timelineSegments as any,
+        token_data_points: tokenDataPoints as any,
+        events: events as any,
+        session_start_time: sessionStartTime,
+        session_end_time: Date.now(),
+        duration_ms: Date.now() - sessionStartTime,
+      };
+
+      const { error } = await supabase
+        .from('sessions')
+        .insert([sessionData]);
+
+      if (error) {
+        console.error('Error auto-saving session:', error);
+      } else {
+        toast({
+          title: 'Session Saved',
+          description: 'Session automatically saved',
+        });
+      }
+    }
+
     if (peerConnection) {
       peerConnection.close();
       setPeerConnection(null);
@@ -347,40 +379,27 @@ export default function Index() {
               <AudioIndicator isActive={isAudioActive} />
               <ConversationTimer isActive={isConnected} startTime={sessionStartTime} />
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-2">
               <h2 className="text-4xl md:text-6xl font-bold">
                 <span className="text-primary">EPAM AI/Run™</span>.ClarityRTC
               </h2>
+              <SessionManager
+                onLoadSession={handleLoadSession}
+                isConnected={isConnected}
+              />
             </div>
           </div>
         </header>
 
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <VoiceControls
-                onStart={startSession}
-                onStop={stopSession}
-                isConnected={isConnected}
-                statusMessage={statusMessage}
-                statusType={statusType}
-                onModelChange={setSelectedModel}
-              />
-            </div>
-            <SessionManager
-              currentModel={selectedModel}
-              currentVoice={selectedVoice}
-              currentPrompt={botPrompt}
-              currentPricingConfig={pricingConfig}
-              sessionStats={sessionStats}
-              timelineSegments={timelineSegments}
-              tokenDataPoints={tokenDataPoints}
-              events={events}
-              sessionStartTime={sessionStartTime}
-              onLoadSession={handleLoadSession}
-              isConnected={isConnected}
-            />
-          </div>
+          <VoiceControls
+            onStart={startSession}
+            onStop={stopSession}
+            isConnected={isConnected}
+            statusMessage={statusMessage}
+            statusType={statusType}
+            onModelChange={setSelectedModel}
+          />
 
           <PromptSettings onPromptChange={setBotPrompt} />
 
