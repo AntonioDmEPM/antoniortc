@@ -63,7 +63,8 @@ export default function Index() {
       timestamp: new Date().toISOString(),
       data,
     };
-    setEvents((prev) => [entry, ...prev.slice(0, 49)]);
+    // Store all events for the session without limiting
+    setEvents((prev) => [entry, ...prev]);
   };
 
   const handleMessage = (eventData: UsageEvent) => {

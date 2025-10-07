@@ -25,11 +25,19 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
     const messages: Message[] = [];
     let messageIdCounter = 0;
 
-    events.forEach((event) => {
+    console.log('Extracting messages from events:', events.length);
+
+    events.forEach((event, index) => {
       const eventType = event.data.type;
+      
+      // Log first few events for debugging
+      if (index < 5) {
+        console.log('Event type:', eventType, 'Data:', event.data);
+      }
 
       // Capture user input transcriptions from completed events
       if (eventType === 'conversation.item.input_audio_transcription.completed') {
+        console.log('Found user transcription:', event.data.transcript);
         messages.push({
           id: `msg-${messageIdCounter++}`,
           role: 'user',
@@ -41,11 +49,13 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
       // Capture assistant messages from response.done events
       if (eventType === 'response.done' && event.data.response?.output) {
         const output = event.data.response.output;
+        console.log('Found response.done with output:', output.length);
         // Extract transcript from the output array
         for (const item of output) {
           if (item.role === 'assistant' && item.content) {
             for (const content of item.content) {
               if (content.type === 'audio' && content.transcript) {
+                console.log('Found assistant transcript:', content.transcript);
                 messages.push({
                   id: `msg-${messageIdCounter++}`,
                   role: 'assistant',
@@ -61,6 +71,7 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
       // Also capture user text input from conversation.item.created events
       if (eventType === 'conversation.item.created' && event.data.item?.role === 'user') {
         const item = event.data.item;
+        console.log('Found conversation.item.created for user:', item);
         if (item.content) {
           for (const content of item.content) {
             if (content.type === 'input_text' && content.text) {
@@ -83,6 +94,7 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
       }
     });
 
+    console.log('Extracted messages:', messages.length);
     // Reverse to show oldest first (events are stored newest first)
     return messages.reverse();
   };
