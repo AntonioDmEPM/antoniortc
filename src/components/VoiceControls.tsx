@@ -18,6 +18,7 @@ const REALTIME_MODELS = [
   { id: 'gpt-4o-realtime-preview-2024-12-17', name: 'GPT-4o Realtime (2024-12-17)' },
   { id: 'gpt-4o-mini-realtime-preview-2024-12-17', name: 'GPT-4o Mini Realtime (2024-12-17)' },
   { id: 'gpt-realtime', name: 'GPT Realtime' },
+  { id: 'gpt-realtime-mini', name: 'GPT Realtime Mini' },
 ];
 
 const VOICES = [

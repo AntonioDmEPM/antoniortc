@@ -36,6 +36,13 @@ export const MODEL_PRICING = {
     textInputCost: 0.000004,
     textOutputCost: 0.000016,
   },
+  "gpt-realtime-mini": {
+    audioInputCost: 0.00001,
+    audioOutputCost: 0.00002,
+    cachedAudioCost: 0.0000003,
+    textInputCost: 0.0000006,
+    textOutputCost: 0.0000024,
+  },
 };
 
 interface PricingSettingsProps {
