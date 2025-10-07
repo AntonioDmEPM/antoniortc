@@ -8,6 +8,7 @@ import PromptSettings from '@/components/PromptSettings';
 import ConversationTimer from '@/components/ConversationTimer';
 import ConversationTimeline, { TimelineSegment } from '@/components/ConversationTimeline';
 import TokenDashboard, { TokenDataPoint } from '@/components/TokenDashboard';
+import ConversationMessages from '@/components/ConversationMessages';
 import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
@@ -360,6 +361,8 @@ export default function Index() {
           />
 
           <ConversationTimeline segments={timelineSegments} sessionStartTime={sessionStartTime} />
+
+          <ConversationMessages events={events} />
 
           <EventLog events={events} onClearEvents={clearEvents} />
         </div>
