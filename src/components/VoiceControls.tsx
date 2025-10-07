@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 
 interface VoiceControlsProps {
-  onStart: (token: string, voice: string, model: string) => void;
+  onStart: (voice: string, model: string) => void;
   onStop: () => void;
   isConnected: boolean;
   statusMessage: string;
@@ -37,16 +37,10 @@ export default function VoiceControls({
   statusType,
   onModelChange,
 }: VoiceControlsProps) {
-  const [token, setToken] = useState('');
   const [voice, setVoice] = useState('ash');
   const [model, setModel] = useState('gpt-4o-realtime-preview-2024-12-17');
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('openai_api_key');
-    if (savedToken) {
-      setToken(savedToken);
-    }
-    
     const savedModel = localStorage.getItem('selected_model');
     if (savedModel && REALTIME_MODELS.find(m => m.id === savedModel)) {
       setModel(savedModel);
@@ -61,9 +55,7 @@ export default function VoiceControls({
   };
 
   const handleStart = () => {
-    if (!token) return;
-    localStorage.setItem('openai_api_key', token);
-    onStart(token, voice, model);
+    onStart(voice, model);
   };
 
   const getStatusColor = () => {
@@ -82,19 +74,6 @@ export default function VoiceControls({
   return (
     <Card className="p-6 shadow-card bg-card/50 backdrop-blur-sm border-primary/20">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="token">OpenAI API Token</Label>
-          <Input
-            id="token"
-            type="password"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            disabled={isConnected}
-            placeholder="sk-..."
-            className="bg-background/50"
-          />
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="model">Model</Label>
           <Select value={model} onValueChange={handleModelChange} disabled={isConnected}>
@@ -129,7 +108,6 @@ export default function VoiceControls({
 
         <Button
           onClick={isConnected ? onStop : handleStart}
-          disabled={!isConnected && !token}
           className="w-full bg-primary hover:bg-primary/90"
           variant={isConnected ? 'destructive' : 'default'}
         >

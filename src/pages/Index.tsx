@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import VoiceControls from '@/components/VoiceControls';
 import StatsDisplay from '@/components/StatsDisplay';
 import EventLog from '@/components/EventLog';
@@ -210,9 +211,21 @@ export default function Index() {
     }
   };
 
-  const startSession = async (token: string, voice: string, model: string) => {
+  const startSession = async (voice: string, model: string) => {
     try {
       setStatusType('connecting');
+      setStatusMessage('Getting session token...');
+
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-realtime-token', {
+        body: { model, voice }
+      });
+
+      if (tokenError || !tokenData?.client_secret?.value) {
+        throw new Error(tokenError?.message || 'Failed to get session token');
+      }
+
+      const token = tokenData.client_secret.value;
+
       setStatusMessage('Requesting microphone access...');
 
       const stream = await navigator.mediaDevices.getUserMedia({
