@@ -79,7 +79,8 @@ export default function PricingSettings({ onPricingChange, selectedModel }: Pric
 
   const handleChange = (field: keyof PricingConfig, value: string) => {
     const numValue = parseFloat(value) || 0;
-    const newPricing = { ...pricing, [field]: numValue };
+    // Convert from per million to per token for storage
+    const newPricing = { ...pricing, [field]: numValue / 1000000 };
     setPricing(newPricing);
   };
 
@@ -106,52 +107,52 @@ export default function PricingSettings({ onPricingChange, selectedModel }: Pric
         <CollapsibleContent className="mt-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="audioInputCost">Audio Input Cost (per token)</Label>
+              <Label htmlFor="audioInputCost">Audio Input Cost (per 1M tokens)</Label>
               <Input
                 id="audioInputCost"
                 type="number"
-                step="0.00000001"
-                value={pricing.audioInputCost}
+                step="0.01"
+                value={pricing.audioInputCost * 1000000}
                 onChange={(e) => handleChange('audioInputCost', e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="audioOutputCost">Audio Output Cost (per token)</Label>
+              <Label htmlFor="audioOutputCost">Audio Output Cost (per 1M tokens)</Label>
               <Input
                 id="audioOutputCost"
                 type="number"
-                step="0.00000001"
-                value={pricing.audioOutputCost}
+                step="0.01"
+                value={pricing.audioOutputCost * 1000000}
                 onChange={(e) => handleChange('audioOutputCost', e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cachedAudioCost">Cached Audio Cost (per token)</Label>
+              <Label htmlFor="cachedAudioCost">Cached Audio Cost (per 1M tokens)</Label>
               <Input
                 id="cachedAudioCost"
                 type="number"
-                step="0.00000001"
-                value={pricing.cachedAudioCost}
+                step="0.01"
+                value={pricing.cachedAudioCost * 1000000}
                 onChange={(e) => handleChange('cachedAudioCost', e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="textInputCost">Text Input Cost (per token)</Label>
+              <Label htmlFor="textInputCost">Text Input Cost (per 1M tokens)</Label>
               <Input
                 id="textInputCost"
                 type="number"
-                step="0.00000001"
-                value={pricing.textInputCost}
+                step="0.01"
+                value={pricing.textInputCost * 1000000}
                 onChange={(e) => handleChange('textInputCost', e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="textOutputCost">Text Output Cost (per token)</Label>
+              <Label htmlFor="textOutputCost">Text Output Cost (per 1M tokens)</Label>
               <Input
                 id="textOutputCost"
                 type="number"
-                step="0.00000001"
-                value={pricing.textOutputCost}
+                step="0.01"
+                value={pricing.textOutputCost * 1000000}
                 onChange={(e) => handleChange('textOutputCost', e.target.value)}
               />
             </div>
