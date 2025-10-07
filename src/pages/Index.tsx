@@ -10,6 +10,7 @@ import ConversationTimer from '@/components/ConversationTimer';
 import ConversationTimeline, { TimelineSegment } from '@/components/ConversationTimeline';
 import TokenDashboard, { TokenDataPoint } from '@/components/TokenDashboard';
 import ConversationMessages from '@/components/ConversationMessages';
+import SessionManager from '@/components/SessionManager';
 import { createRealtimeSession, AudioVisualizer, calculateCosts, SessionStats, UsageEvent, PricingConfig } from '@/utils/webrtcAudio';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,6 +44,7 @@ export default function Index() {
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [audioVisualizer, setAudioVisualizer] = useState<AudioVisualizer | null>(null);
   const [selectedModel, setSelectedModel] = useState('gpt-4o-realtime-preview-2024-12-17');
+  const [selectedVoice, setSelectedVoice] = useState('alloy');
   const [botPrompt, setBotPrompt] = useState('You are a helpful AI assistant. Be concise and friendly in your responses.');
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>({
     audioInputCost: 0.00004,
@@ -213,6 +215,7 @@ export default function Index() {
 
   const startSession = async (voice: string, model: string) => {
     try {
+      setSelectedVoice(voice);
       setStatusType('connecting');
       setStatusMessage('Getting session token...');
 
@@ -312,6 +315,23 @@ export default function Index() {
     });
   };
 
+  const handleLoadSession = (session: any) => {
+    setSelectedModel(session.model);
+    setSelectedVoice(session.voice);
+    setBotPrompt(session.bot_prompt);
+    setPricingConfig(session.pricing_config);
+    setSessionStats(session.session_stats);
+    setTimelineSegments(session.timeline_segments);
+    setTokenDataPoints(session.token_data_points);
+    setEvents(session.events);
+    setSessionStartTime(session.session_start_time);
+    sessionStartTimeRef.current = session.session_start_time;
+    
+    const totalInput = session.session_stats.audioInputTokens + session.session_stats.textInputTokens;
+    const totalOutput = session.session_stats.audioOutputTokens + session.session_stats.textOutputTokens;
+    setCumulativeTokens({ input: totalInput, output: totalOutput });
+  };
+
   useEffect(() => {
     return () => {
       stopSession();
@@ -336,14 +356,31 @@ export default function Index() {
         </header>
 
         <div className="space-y-6">
-          <VoiceControls
-            onStart={startSession}
-            onStop={stopSession}
-            isConnected={isConnected}
-            statusMessage={statusMessage}
-            statusType={statusType}
-            onModelChange={setSelectedModel}
-          />
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <VoiceControls
+                onStart={startSession}
+                onStop={stopSession}
+                isConnected={isConnected}
+                statusMessage={statusMessage}
+                statusType={statusType}
+                onModelChange={setSelectedModel}
+              />
+            </div>
+            <SessionManager
+              currentModel={selectedModel}
+              currentVoice={selectedVoice}
+              currentPrompt={botPrompt}
+              currentPricingConfig={pricingConfig}
+              sessionStats={sessionStats}
+              timelineSegments={timelineSegments}
+              tokenDataPoints={tokenDataPoints}
+              events={events}
+              sessionStartTime={sessionStartTime}
+              onLoadSession={handleLoadSession}
+              isConnected={isConnected}
+            />
+          </div>
 
           <PromptSettings onPromptChange={setBotPrompt} />
 

@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      sessions: {
+        Row: {
+          bot_prompt: string
+          created_at: string
+          duration_ms: number | null
+          events: Json
+          id: string
+          model: string
+          name: string
+          pricing_config: Json
+          session_end_time: number | null
+          session_start_time: number | null
+          session_stats: Json
+          timeline_segments: Json
+          token_data_points: Json
+          updated_at: string
+          voice: string
+        }
+        Insert: {
+          bot_prompt: string
+          created_at?: string
+          duration_ms?: number | null
+          events?: Json
+          id?: string
+          model: string
+          name: string
+          pricing_config: Json
+          session_end_time?: number | null
+          session_start_time?: number | null
+          session_stats: Json
+          timeline_segments?: Json
+          token_data_points?: Json
+          updated_at?: string
+          voice: string
+        }
+        Update: {
+          bot_prompt?: string
+          created_at?: string
+          duration_ms?: number | null
+          events?: Json
+          id?: string
+          model?: string
+          name?: string
+          pricing_config?: Json
+          session_end_time?: number | null
+          session_start_time?: number | null
+          session_stats?: Json
+          timeline_segments?: Json
+          token_data_points?: Json
+          updated_at?: string
+          voice?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
