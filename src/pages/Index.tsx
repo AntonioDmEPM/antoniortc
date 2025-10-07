@@ -401,7 +401,7 @@ export default function Index() {
             onModelChange={setSelectedModel}
           />
 
-          <PromptSettings onPromptChange={setBotPrompt} />
+          <PromptSettings onPromptChange={setBotPrompt} currentPrompt={botPrompt} />
 
           <PricingSettings 
             onPricingChange={setPricingConfig}

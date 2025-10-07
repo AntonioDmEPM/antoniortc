@@ -10,12 +10,19 @@ const DEFAULT_PROMPT = "You are a helpful AI assistant. Be concise and friendly 
 
 interface PromptSettingsProps {
   onPromptChange: (prompt: string) => void;
+  currentPrompt?: string;
 }
 
-export default function PromptSettings({ onPromptChange }: PromptSettingsProps) {
+export default function PromptSettings({ onPromptChange, currentPrompt }: PromptSettingsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [prompt, setPrompt] = useState<string>(DEFAULT_PROMPT);
+  const [prompt, setPrompt] = useState<string>(currentPrompt || DEFAULT_PROMPT);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (currentPrompt !== undefined) {
+      setPrompt(currentPrompt);
+    }
+  }, [currentPrompt]);
 
   const autoResize = () => {
     if (textareaRef.current) {
