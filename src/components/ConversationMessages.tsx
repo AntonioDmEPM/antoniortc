@@ -23,14 +23,12 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
   // Extract conversation messages from events
   const extractMessages = (): Message[] => {
     const messages: Message[] = [];
-    let currentAssistantMessage = '';
-    let currentAssistantTimestamp = '';
     let messageIdCounter = 0;
 
     events.forEach((event) => {
       const eventType = event.data.type;
 
-      // Capture user input transcriptions
+      // Capture user input transcriptions from completed events
       if (eventType === 'conversation.item.input_audio_transcription.completed') {
         messages.push({
           id: `msg-${messageIdCounter++}`,
@@ -40,36 +38,52 @@ export default function ConversationMessages({ events }: ConversationMessagesPro
         });
       }
 
-      // Capture assistant audio transcript deltas
-      if (eventType === 'response.audio_transcript.delta') {
-        if (!currentAssistantMessage) {
-          currentAssistantTimestamp = event.timestamp;
+      // Capture assistant messages from response.done events
+      if (eventType === 'response.done' && event.data.response?.output) {
+        const output = event.data.response.output;
+        // Extract transcript from the output array
+        for (const item of output) {
+          if (item.role === 'assistant' && item.content) {
+            for (const content of item.content) {
+              if (content.type === 'audio' && content.transcript) {
+                messages.push({
+                  id: `msg-${messageIdCounter++}`,
+                  role: 'assistant',
+                  content: content.transcript,
+                  timestamp: event.timestamp,
+                });
+              }
+            }
+          }
         }
-        currentAssistantMessage += event.data.delta || '';
       }
 
-      // Capture assistant text deltas
-      if (eventType === 'response.text.delta') {
-        if (!currentAssistantMessage) {
-          currentAssistantTimestamp = event.timestamp;
+      // Also capture user text input from conversation.item.created events
+      if (eventType === 'conversation.item.created' && event.data.item?.role === 'user') {
+        const item = event.data.item;
+        if (item.content) {
+          for (const content of item.content) {
+            if (content.type === 'input_text' && content.text) {
+              messages.push({
+                id: `msg-${messageIdCounter++}`,
+                role: 'user',
+                content: content.text,
+                timestamp: event.timestamp,
+              });
+            } else if (content.type === 'input_audio' && content.transcript) {
+              messages.push({
+                id: `msg-${messageIdCounter++}`,
+                role: 'user',
+                content: content.transcript,
+                timestamp: event.timestamp,
+              });
+            }
+          }
         }
-        currentAssistantMessage += event.data.delta || '';
-      }
-
-      // Finalize assistant message on done events
-      if ((eventType === 'response.audio_transcript.done' || eventType === 'response.done') && currentAssistantMessage) {
-        messages.push({
-          id: `msg-${messageIdCounter++}`,
-          role: 'assistant',
-          content: currentAssistantMessage.trim(),
-          timestamp: currentAssistantTimestamp,
-        });
-        currentAssistantMessage = '';
-        currentAssistantTimestamp = '';
       }
     });
 
-    // Reverse to show newest first (events are stored newest first)
+    // Reverse to show oldest first (events are stored newest first)
     return messages.reverse();
   };
 
