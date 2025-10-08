@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OpenAI_API_Token');
+    const OPENAI_API_KEY = Deno.env.get('OpenAI_API_Key');
     if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI_API_Token is not configured');
+      throw new Error('OpenAI_API_Key is not configured');
     }
 
     const { model, voice } = await req.json();
