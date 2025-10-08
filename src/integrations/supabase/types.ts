@@ -30,6 +30,7 @@ export type Database = {
           timeline_segments: Json
           token_data_points: Json
           updated_at: string
+          user_id: string
           voice: string
         }
         Insert: {
@@ -47,6 +48,7 @@ export type Database = {
           timeline_segments?: Json
           token_data_points?: Json
           updated_at?: string
+          user_id: string
           voice: string
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           timeline_segments?: Json
           token_data_points?: Json
           updated_at?: string
+          user_id?: string
           voice?: string
         }
         Relationships: []

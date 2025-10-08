@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
 import VoiceControls from '@/components/VoiceControls';
 import StatsDisplay from '@/components/StatsDisplay';
 import EventLog from '@/components/EventLog';
@@ -31,7 +35,10 @@ const initialStats: SessionStats = {
 };
 
 export default function Index() {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState<'idle' | 'success' | 'error' | 'connecting'>('idle');
@@ -60,6 +67,36 @@ export default function Index() {
   const [currentSegment, setCurrentSegment] = useState<Partial<TimelineSegment> | null>(null);
   const [tokenDataPoints, setTokenDataPoints] = useState<TokenDataPoint[]>([]);
   const [cumulativeTokens, setCumulativeTokens] = useState({ input: 0, output: 0 });
+
+  // Authentication check
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, authSession) => {
+        setSession(authSession);
+        setUser(authSession?.user ?? null);
+        
+        if (!authSession) {
+          navigate('/auth');
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session: authSession } }) => {
+      setSession(authSession);
+      setUser(authSession?.user ?? null);
+      
+      if (!authSession) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
 
   const addEvent = (data: any) => {
     const entry: EventEntry = {
@@ -276,9 +313,10 @@ export default function Index() {
 
   const stopSession = async () => {
     // Auto-save session before stopping
-    if (sessionStartTime) {
+    if (sessionStartTime && user) {
       const sessionName = `Session ${new Date().toLocaleString()}`;
       const sessionData = {
+        user_id: user.id,
         name: sessionName,
         model: selectedModel,
         voice: selectedVoice,
@@ -370,6 +408,10 @@ export default function Index() {
     };
   }, []);
 
+  if (!user || !session) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -387,7 +429,18 @@ export default function Index() {
                 onLoadSession={handleLoadSession}
                 isConnected={isConnected}
               />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
+          </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Logged in as {user.email}
           </div>
         </header>
 
